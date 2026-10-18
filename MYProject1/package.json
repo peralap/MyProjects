@@ -1,0 +1,22 @@
+{
+  "name": "maitri-matrimony",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Region-neutral matrimony platform",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB -c green,cyan \"npm run dev --workspace backend\" \"npm run start --workspace frontend\"",
+    "build": "npm run build --workspace frontend",
+    "test": "npm run test --workspace backend && npm run build --workspace frontend",
+    "migrate": "npm run migrate --workspace backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

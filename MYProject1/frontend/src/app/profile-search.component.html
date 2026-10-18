@@ -1,0 +1,231 @@
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Matrimony home"><span class="brand-mark">M</span><span>Matrimony<span class="brand-period">.</span></span></a>
+    @if (authenticated && currentUserRole === 'user') {
+      <nav class="main-nav" aria-label="Main navigation">
+        <button type="button" [class.current]="activeView === 'discover'" [disabled]="!hasActiveSubscription" [attr.title]="hasActiveSubscription ? null : 'An active subscription is required'" (click)="activeView = 'discover'">Discover</button>
+        <button type="button" [class.current]="activeView === 'interests'" [disabled]="!hasActiveSubscription" [attr.title]="hasActiveSubscription ? null : 'An active subscription is required'" (click)="activeView = 'interests'">Interests <span class="nav-count">{{ incomingCount || '' }}</span></button>
+        <button type="button" [class.current]="activeView === 'subscription'" (click)="activeView = 'subscription'">Subscription</button>
+      </nav>
+    }
+    @if (authenticated && currentUserRole === 'admin') {
+      <nav class="main-nav" aria-label="Admin navigation">
+        <button type="button" [class.current]="activeView === 'admin'" (click)="activeView = 'admin'">Members</button>
+        <button type="button" [class.current]="activeView === 'adminBilling'" (click)="activeView = 'adminBilling'">Plans &amp; payments</button>
+      </nav>
+    }
+    @if (authenticated) {
+      <div class="account-tools">
+        @if (currentUserRole === 'admin') { <span class="header-profile-name">{{ currentName }}</span> }
+        @else { <button type="button" class="header-profile-name" [title]="hasProfile ? 'Edit your profile' : 'Create your profile'" (click)="showProfileForm = !showProfileForm">{{ currentName }}</button> }
+        <button type="button" class="logout-button" (click)="logout()" title="Sign out"><span aria-hidden="true">↗</span> Sign out</button>
+      </div>
+    } @else {
+      <span class="top-note">A thoughtful way to meet</span>
+    }
+  </header>
+
+  @if (!authenticated) {
+    <main class="welcome-layout">
+      <section class="welcome-copy" aria-label="Maitri introduction">
+        <div class="welcome-slider">
+          <img class="welcome-slide-image" [src]="welcomeSlides[welcomeSlideIndex].imageUrl" [alt]="welcomeSlides[welcomeSlideIndex].imageAlt">
+          <div class="welcome-slide-shade"></div>
+          <div class="welcome-slide-brand">maitri<span>.</span></div>
+          <div class="welcome-slide-count">0{{ welcomeSlideIndex + 1 }} / 0{{ welcomeSlides.length }}</div>
+          <div class="welcome-slide-content" aria-live="polite">
+            <p class="welcome-slide-eyebrow">{{ welcomeSlides[welcomeSlideIndex].eyebrow }}</p>
+            <h1>{{ welcomeSlides[welcomeSlideIndex].heading }}<br><em>{{ welcomeSlides[welcomeSlideIndex].emphasis }}</em></h1>
+            <p class="welcome-slide-caption">{{ welcomeSlides[welcomeSlideIndex].caption }}</p>
+            <div class="welcome-contact"><span>Questions? Reach us</span><a href="mailto:testing@gmail.com">testing@gmail.com</a><a href="tel:12345678">12345678</a></div>
+            <div class="welcome-slide-controls"><button type="button" (click)="setWelcomeSlide(welcomeSlideIndex - 1)" aria-label="Previous image">←</button><div class="welcome-slide-dots">@for (slide of welcomeSlides; track slide.imageUrl; let index = $index) { <button type="button" [class.active]="index === welcomeSlideIndex" [attr.aria-label]="'Show image ' + (index + 1)" [attr.aria-pressed]="index === welcomeSlideIndex" (click)="setWelcomeSlide(index)"></button> }</div><button type="button" (click)="setWelcomeSlide(welcomeSlideIndex + 1)" aria-label="Next image">→</button></div>
+          </div>
+        </div>
+      </section>
+      <section class="auth-panel" aria-labelledby="auth-title">
+        <div class="auth-heading"><span class="section-kicker">YOUR NEXT CHAPTER</span><h2 id="auth-title">{{ authMode === 'register' ? 'Create your account' : 'Welcome back' }}</h2><p>{{ authMode === 'register' ? 'Start with the basics. Your profile comes next.' : 'Sign in to continue meeting with intention.' }}</p></div>
+        <form (ngSubmit)="submitAuth()">
+          <label>Email address<input type="email" name="email" [(ngModel)]="email" autocomplete="email" placeholder="you@example.com" required></label>
+          @if (authMode === 'register') {
+            <label>Phone number<input type="tel" name="phone" [(ngModel)]="phone" autocomplete="tel" placeholder="+91 98765 43210" required></label>
+          }
+          <label>Password<input type="password" name="password" [(ngModel)]="password" [attr.autocomplete]="authMode === 'register' ? 'new-password' : 'current-password'" minlength="8" placeholder="At least 8 characters" required></label>
+          @if (authError) { <p class="inline-error" role="alert">{{ authError }}</p> }
+          <button class="primary-button auth-submit" type="submit" [disabled]="authBusy">{{ authBusy ? 'One moment…' : (authMode === 'register' ? 'Create account' : 'Sign in') }} <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="auth-switch">{{ authMode === 'register' ? 'Already have an account?' : 'New to Maitri?' }} <button type="button" (click)="authMode = authMode === 'register' ? 'login' : 'register'; authError = ''">{{ authMode === 'register' ? 'Sign in' : 'Create account' }}</button></p>
+        <p class="privacy-note">Your details stay yours. We never show your contact information on your public profile.</p>
+      </section>
+    </main>
+  } @else if (currentUserRole === 'admin') {
+    <main class="admin-workspace">
+      @if (activeView === 'admin') {
+      <section class="admin-heading">
+        <div><p class="eyebrow"><span class="eyebrow-line"></span> MAITRI ADMINISTRATION</p><h1>Member <em>directory.</em></h1><p class="page-intro">Account and profile details across the platform.</p></div>
+        <div class="admin-count"><strong>{{ adminUsers.length }}</strong><span>registered members</span></div>
+      </section>
+      @if (adminError) { <div class="inline-error page-error" role="alert">{{ adminError }}</div> }
+      <section class="admin-toolbar"><label class="admin-search">Search members<input type="search" [(ngModel)]="adminFilter" placeholder="Name, email, phone, location or status"></label><button type="button" class="text-button" (click)="loadAdminUsers()" [disabled]="adminLoading">{{ adminLoading ? 'Loading…' : 'Refresh' }} <span>↻</span></button></section>
+      @if (adminLoading) { <div class="empty-state"><span class="loader"></span><p>Loading member records…</p></div> }
+      @else if (filteredAdminUsers.length === 0) { <div class="empty-state"><h3>No members found</h3><p>Try another search, or refresh the directory.</p></div> }
+      @else {
+        <section class="admin-users-grid" aria-label="Registered user details">
+          @for (user of filteredAdminUsers; track user.id) {
+            <article class="admin-user-card">
+              <header class="admin-user-heading">
+                @if (user.has_photo && photoUrls[user.id]) { <img class="admin-user-avatar" [src]="photoUrls[user.id]" [alt]="(user.first_name || user.email) + ' profile photo'"> }
+                @else { <span class="admin-user-avatar admin-initials">{{ user.first_name?.charAt(0) || user.email.charAt(0) }}{{ user.last_name?.charAt(0) || '' }}</span> }
+                <div class="admin-user-name"><h2>{{ user.first_name ? user.first_name + ' ' + (user.last_name || '') : 'Profile not created' }}</h2><p>{{ user.email }}</p><p>{{ user.phone }}</p></div>
+                <div class="admin-account-actions"><span class="admin-status" [class.active]="user.account_status === 'Active'">{{ user.account_status }}</span>@if (user.id !== currentUserId) { @if (user.account_status === 'Pending' || user.account_status === 'Suspended') { <button type="button" class="accept-button" (click)="setAdminAccountStatus(user, 'Active')">{{ user.account_status === 'Pending' ? 'Verify' : 'Reactivate' }}</button> } @if (user.account_status === 'Active') { <button type="button" class="decline-button" (click)="setAdminAccountStatus(user, 'Suspended')">Deactivate</button> } }</div>
+              </header>
+              <dl class="admin-detail-grid">
+                <div><dt>User ID</dt><dd>{{ user.id }}</dd></div><div><dt>Role</dt><dd>{{ user.role }}</dd></div>
+                <div><dt>Gender / Age</dt><dd>{{ user.gender || '—' }}{{ user.age ? ' / ' + user.age : '' }}</dd></div>
+                <div><dt>Height</dt><dd>{{ user.height_cm ? user.height_cm + ' cm' : '—' }}</dd></div>
+                <div><dt>Location</dt><dd>{{ user.current_city || user.native_district || '—' }}{{ user.current_city && user.native_district ? ', ' + user.native_district : '' }}</dd></div>
+                <div><dt>Education</dt><dd>{{ user.education || '—' }}</dd></div>
+                <div><dt>Profession</dt><dd>{{ user.profession || '—' }}</dd></div>
+                <div><dt>Community</dt><dd>{{ user.caste_community || '—' }}</dd></div>
+                <div><dt>Religion</dt><dd>{{ user.religion || '—' }}</dd></div>
+                <div><dt>Gothram</dt><dd>{{ user.gothram || '—' }}</dd></div>
+                <div><dt>Star / Rasi</dt><dd>{{ user.star_nakshatram || '—' }}{{ user.rasi ? ' / ' + user.rasi : '' }}</dd></div>
+                <div><dt>Mother tongue</dt><dd>{{ user.mother_tongue || '—' }}</dd></div>
+                <div><dt>Annual income</dt><dd>{{ user.annual_income ?? '—' }}</dd></div>
+                <div><dt>Joined</dt><dd>{{ user.created_at | date:'mediumDate' }}</dd></div>
+              </dl>
+              @if (user.bio || user.family_details) { <details class="admin-more-details"><summary>About and family</summary>@if (user.bio) { <p>{{ user.bio }}</p> }@if (user.family_details) { <p><strong>Family:</strong> {{ user.family_details }}</p> }</details> }
+            </article>
+          }
+        </section>
+      }
+      } @else {
+        <section class="admin-heading">
+          <div><p class="eyebrow"><span class="eyebrow-line"></span> SUBSCRIPTIONS</p><h1>Plans &amp; <em>payments.</em></h1><p class="page-intro">Set prices and review transfer references.</p></div>
+          <div class="admin-count"><strong>{{ adminPayments.length }}</strong><span>payment records</span></div>
+        </section>
+        @if (adminError) { <div class="inline-error page-error" role="alert">{{ adminError }}</div> }
+        <section class="admin-plans-grid" aria-label="Subscription plan prices">
+          @for (plan of adminPlans; track plan.id) {
+            <article class="admin-plan-card"><div><span class="section-kicker">{{ plan.duration_months }} MONTH{{ plan.duration_months === 1 ? '' : 'S' }}</span><h2>{{ plan.name }}</h2></div><label>Price<input type="number" min="1" step="0.01" [(ngModel)]="adminPlanPrices[plan.id]"></label><label>Currency<input maxlength="3" [(ngModel)]="adminPlanCurrencies[plan.id]"></label><button class="primary-button" type="button" (click)="savePlanPrice(plan)">Save price <span>→</span></button></article>
+          }
+        </section>
+        <section class="admin-payments-section"><div class="results-heading"><h2>Payment references</h2><button type="button" class="text-button" (click)="loadAdminBilling()" [disabled]="adminBillingLoading">Refresh <span>↻</span></button></div>
+          @if (adminBillingLoading) { <div class="empty-state"><span class="loader"></span><p>Loading payments…</p></div> }
+          @else if (adminPayments.length === 0) { <div class="empty-state"><h3>No payment references yet</h3><p>Submitted transfers will appear here for review.</p></div> }
+          @else { <div class="admin-payments-list">@for (payment of adminPayments; track payment.id) { <article class="admin-payment-row"><div class="payment-member"><strong>{{ payment.email }}</strong><span>{{ payment.phone }}</span></div><div><strong>{{ payment.plan_name }}</strong><span>{{ payment.duration_months }} months · {{ payment.currency }} {{ payment.amount }}</span></div><div><strong>Reference</strong><span>{{ payment.transaction_reference }}</span></div><span class="admin-status" [class.active]="payment.status === 'Approved'">{{ payment.status }}</span>@if (payment.status === 'Pending') { <div class="payment-actions"><button type="button" class="accept-button" (click)="reviewPayment(payment, 'Approved')">Approve</button><button type="button" class="decline-button" (click)="reviewPayment(payment, 'Rejected')">Reject</button></div> }</article> } </div> }
+        </section>
+      }
+    </main>
+  } @else if (currentUserRole === 'user' && activeView === 'subscription') {
+    <main class="subscription-workspace">
+      <section class="page-heading"><div><p class="eyebrow"><span class="eyebrow-line"></span> YOUR MEMBERSHIP</p><h1>Make room for <em>connection.</em></h1><p class="page-intro">Choose a term to unlock profile search and expressions of interest.</p></div></section>
+      @if (notice) { <div class="notice" role="status"><span>✓</span>{{ notice }}<button type="button" (click)="notice = ''" aria-label="Dismiss notification">×</button></div> }
+      @if (subscriptionError) { <div class="inline-error page-error" role="alert">{{ subscriptionError }}</div> }
+      @if (currentSubscription) {
+        <section class="current-subscription"><div><p class="section-kicker">LATEST SUBSCRIPTION</p><h2>{{ currentSubscription.plan_name }} · {{ currentSubscription.status }}</h2><p>Payment {{ currentSubscription.payment_status }} · Reference {{ currentSubscription.transaction_reference }}</p>@if (currentSubscription.ends_at) { <p>Valid through {{ currentSubscription.ends_at | date:'mediumDate' }}</p> }@if (currentSubscription.review_note) { <p>{{ currentSubscription.review_note }}</p> }</div><span class="admin-status" [class.active]="hasActiveSubscription">{{ hasActiveSubscription ? 'Search enabled' : 'Search locked' }}</span></section>
+      }
+      <div class="subscription-intro"><span class="section-kicker">SELECT A SUBSCRIPTION TERM</span><p>After making your transfer through the agreed payment channel, submit its reference below. Search access starts after an administrator verifies it.</p></div>
+      <section class="subscription-plan-grid">
+        @for (plan of subscriptionPlans; track plan.id) {
+          <button type="button" class="subscription-plan" [class.selected]="selectedPlanId === plan.id" [disabled]="plan.amount === null" (click)="selectedPlanId = plan.id">
+            <span class="section-kicker">{{ plan.duration_months }} MONTH{{ plan.duration_months === 1 ? '' : 'S' }}</span><strong>{{ plan.name }}</strong><span class="plan-price">{{ plan.amount === null ? 'Price pending' : (plan.currency + ' ' + plan.amount) }}</span><span>{{ selectedPlanId === plan.id ? 'Selected' : (plan.amount === null ? 'Not available yet' : 'Choose plan') }}</span>
+          </button>
+        }
+      </section>
+      @if (!hasActiveSubscription) {
+        <form class="subscription-request" (ngSubmit)="submitSubscriptionRequest()"><label>Transfer / transaction reference<input name="transactionReference" [(ngModel)]="transactionReference" required minlength="4" maxlength="120" placeholder="Enter the reference from your transfer"></label><button class="primary-button" type="submit" [disabled]="subscriptionBusy || selectedPlanId === null || !transactionReference.trim()">{{ subscriptionBusy ? 'Submitting…' : 'Submit for review' }} <span aria-hidden="true">→</span></button></form>
+      }
+    </main>
+  } @else {
+    <main class="workspace">
+      <section class="page-heading">
+        <div><p class="eyebrow"><span class="eyebrow-line"></span> YOUR SEARCH, YOUR WAY</p>@if (activeView === 'discover') { <h1>Meet someone <em>meaningful.</em></h1> } @else { <h1>The feeling <em>is mutual?</em></h1> }<p class="page-intro">{{ activeView === 'discover' ? 'A good introduction begins with the things you value.' : 'See who reached out, and decide what feels right.' }}</p></div>
+        @if (activeView === 'discover') { <div class="result-note"><span class="result-marker"></span> {{ profiles.length }} {{ profiles.length === 1 ? 'profile' : 'profiles' }} to explore</div> }
+      </section>
+
+      @if (notice) { <div class="notice" role="status"><span>✓</span>{{ notice }}<button type="button" (click)="notice = ''" aria-label="Dismiss notification">×</button></div> }
+      @if (errorMessage) { <div class="inline-error page-error" role="alert">{{ errorMessage }}<button type="button" (click)="errorMessage = ''" aria-label="Dismiss error">×</button></div> }
+
+      @if (showProfileForm) {
+        <section class="profile-editor">
+          <div class="editor-heading"><div><p class="section-kicker">A LITTLE ABOUT YOU</p><h2>{{ hasProfile ? 'Your profile' : 'Start your profile' }}</h2></div><button class="icon-button" type="button" (click)="showProfileForm = false" aria-label="Close profile editor">×</button></div>
+          <div class="wizard-track" aria-label="Profile steps"><span [class.active]="profileStep === 1" [class.complete]="profileStep > 1">01 <small>About you</small></span><i></i><span [class.active]="profileStep === 2" [class.complete]="profileStep > 2">02 <small>Your life</small></span><i></i><span [class.active]="profileStep === 3">03 <small>Family &amp; culture</small></span></div>
+          <form #profileFormElement class="profile-form" (ngSubmit)="saveProfile()">
+            @if (profileStep === 1) {
+              <label>First name<input name="first_name" [(ngModel)]="profileForm.first_name" required maxlength="100"></label>
+              <label>Last name<input name="last_name" [(ngModel)]="profileForm.last_name" required maxlength="100"></label>
+              <label>Gender<select name="gender" [(ngModel)]="profileForm.gender" required><option value="Female">Female</option><option value="Male">Male</option><option value="Other">Other</option></select></label>
+              <label>Date of birth<input type="date" name="date_of_birth" [(ngModel)]="profileForm.date_of_birth" required></label>
+              <label>Height (cm)<input type="number" name="height_cm" [(ngModel)]="profileForm.height_cm" min="120" max="230" required></label>
+              <label>Mother tongue<input name="mother_tongue" [(ngModel)]="profileForm.mother_tongue" maxlength="60" required></label>
+              <label>Religion<input name="religion" [(ngModel)]="profileForm.religion" maxlength="60" required></label>
+            } @else if (profileStep === 2) {
+              <label>Native region<input name="native_district" [(ngModel)]="profileForm.native_district" required maxlength="80" placeholder="City, state or country"></label>
+              <label>Current city<input name="current_city" [(ngModel)]="profileForm.current_city" required maxlength="120"></label>
+              <label>Education<input name="education" [(ngModel)]="profileForm.education" maxlength="160"></label>
+              <label>Profession<input name="profession" [(ngModel)]="profileForm.profession" maxlength="160"></label>
+              <label>Annual income (INR)<input type="number" name="annual_income" [(ngModel)]="profileForm.annual_income" min="0"></label>
+              <label class="wide-field">A little about your family<textarea name="family_details" [(ngModel)]="profileForm.family_details" rows="3" maxlength="5000"></textarea></label>
+            } @else {
+              <label>Community<input name="caste_community" [(ngModel)]="profileForm.caste_community" maxlength="120" required></label>
+              <label>Gothram<input name="gothram" [(ngModel)]="profileForm.gothram" maxlength="120"></label>
+              <label>Star / Nakshatram<input name="star_nakshatram" [(ngModel)]="profileForm.star_nakshatram" maxlength="60"></label>
+              <label>Rasi<input name="rasi" [(ngModel)]="profileForm.rasi" maxlength="60"></label>
+              <label class="wide-field">A few words about you<textarea name="bio" [(ngModel)]="profileForm.bio" rows="3" maxlength="3000" placeholder="What matters to you? What are you looking forward to?"></textarea></label>
+              <label class="wide-field">Profile photo<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" (change)="selectPhoto($event)"><small class="field-help">JPEG, PNG or WebP. Up to 2 MB. {{ pendingPhoto ? pendingPhoto.name + ' selected' : '' }}</small></label>
+              <label class="wide-field">Or use a photo URL<input type="url" name="profile_photo_url" [(ngModel)]="profileForm.profile_photo_url" maxlength="500" placeholder="https://..."></label>
+            }
+            <div class="form-actions wide-field"><p>Step {{ profileStep }} of 3 <span>{{ hasProfile ? 'Your profile is visible to members.' : 'Your profile appears in search when saved.' }}</span></p><div class="wizard-actions">@if (profileStep > 1) { <button class="back-button" type="button" (click)="profileStep = profileStep - 1">Back</button> } @if (profileStep < 3) { <button class="primary-button" type="button" (click)="advanceProfileStep(profileFormElement)">Continue <span aria-hidden="true">→</span></button> } @else { <button class="primary-button" type="submit" [disabled]="saving">{{ saving ? 'Saving…' : 'Save profile' }} <span aria-hidden="true">→</span></button> }</div></div>
+          </form>
+        </section>
+      } @else if (activeView === 'discover') {
+        @if (!hasProfile) {
+          <div class="profile-prompt"><span class="prompt-mark">✳</span><p><strong>Your introduction starts with you.</strong> Complete a profile to appear in search and send interest.</p><button type="button" class="text-button" (click)="showProfileForm = true">Build your profile <span>→</span></button></div>
+        }
+        <section class="search-panel" aria-label="Partner search filters">
+          <div class="filters-topline"><span class="section-kicker">FIND YOUR KIND OF PERSON</span><button type="button" class="text-button" (click)="filters = { gender: '', region: '', minAge: 21, maxAge: 35, education: '', profession: '', star: '', rasi: '', minHeight: '', maxHeight: '' }; loadProfiles()">Clear filters</button></div>
+          <div class="filter-grid">
+            <label>Looking for<select name="filterGender" [(ngModel)]="filters.gender"><option value="">Everyone</option><option value="Female">Bride</option><option value="Male">Bridegroom</option><option value="Other">Other</option></select></label>
+            <label>Region or city<input name="filterRegion" [(ngModel)]="filters.region" placeholder="Any location"></label>
+            <label>Age from<input type="number" name="minAge" [(ngModel)]="filters.minAge" min="18" max="100"></label>
+            <label>to<input type="number" name="maxAge" [(ngModel)]="filters.maxAge" min="18" max="100"></label>
+            <label>Education<input name="education" [(ngModel)]="filters.education" placeholder="Any education"></label>
+            <label>Occupation<input name="profession" [(ngModel)]="filters.profession" placeholder="Any occupation"></label>
+            <label>Star<input name="star" [(ngModel)]="filters.star" placeholder="Nakshatram"></label>
+            <label>Rasi<input name="rasi" [(ngModel)]="filters.rasi" placeholder="Any rasi"></label>
+            <label>Height from (cm)<input type="number" name="minHeight" [(ngModel)]="filters.minHeight" min="120" max="230" placeholder="Any"></label>
+            <label>to (cm)<input type="number" name="maxHeight" [(ngModel)]="filters.maxHeight" min="120" max="230" placeholder="Any"></label>
+            <button type="button" class="primary-button search-button" (click)="loadProfiles()" [disabled]="loading">{{ loading ? 'Searching…' : 'Search profiles' }} <span aria-hidden="true">→</span></button>
+          </div>
+        </section>
+        <section class="results-section" aria-live="polite">
+          <div class="results-heading"><div><h2>Profiles to discover</h2><p class="matching-community">Only showing members in your community: {{ profileForm.caste_community || 'add your community to your profile' }}</p></div><span>Showing {{ profileResultStart }}–{{ profileResultEnd }} of {{ profileTotal }}</span></div>
+          @if (loading) { <div class="empty-state"><span class="loader"></span><p>Finding thoughtful introductions…</p></div> }
+          @else if (profiles.length === 0) { <div class="empty-state"><span class="empty-flower">✳</span><h3>No profiles just yet</h3><p>Try widening your filters, or come back as more people join.</p></div> }
+          @else {
+            <div class="profile-grid">
+              @for (profile of profiles; track profile.id) {
+                <article class="candidate-card">
+                  <div class="candidate-cover"><span class="cover-index">PROFILE / {{ profile.id.toString().padStart(3, '0') }}</span>@if (photoUrls[profile.user_id] || profile.profile_photo_url) { <img class="candidate-photo" [src]="photoUrls[profile.user_id] || profile.profile_photo_url || ''" [alt]="'Portrait of ' + profile.first_name" loading="lazy"> } @else { <span class="candidate-monogram">{{ initials(profile) }}</span> }<span class="cover-spark">✳</span></div>
+                  <div class="candidate-content"><div class="candidate-title"><div><h3>{{ profile.first_name }} {{ profile.last_name }}</h3><p>{{ profile.current_city }}<span class="middot">·</span>{{ profile.native_district }}</p></div><span class="candidate-age">{{ profile.date_of_birth | age }} yrs</span></div>
+                    <div class="candidate-facts"><span>{{ profile.profession || 'Profession not shared' }}</span><span>{{ profile.education || 'Education not shared' }}</span><span>{{ profile.height_cm ? (profile.height_cm + ' cm') : 'Height not shared' }}</span></div>
+                    @if (profile.bio) { <p class="candidate-bio">“{{ profile.bio }}”</p> }
+                    @if (profile.caste_community || profile.gothram || profile.star_nakshatram || profile.rasi) { <div class="candidate-culture">{{ profile.caste_community || 'Community not shared' }}@if (profile.gothram) { <span>· {{ profile.gothram }}</span> }@if (profile.star_nakshatram) { <span>· {{ profile.star_nakshatram }}</span> }@if (profile.rasi) { <span>· {{ profile.rasi }}</span> }</div> }
+                    <button type="button" class="interest-button" [disabled]="!hasProfile" (click)="sendInterest(profile)">{{ hasProfile ? 'Express interest' : 'Complete profile to connect' }} <span aria-hidden="true">↗</span></button>
+                  </div>
+                </article>
+              }
+            </div>
+            @if (profilePageCount > 1) { <nav class="results-pagination" aria-label="Search result pages"><button type="button" (click)="loadProfiles(profilePage - 1)" [disabled]="profilePage <= 1">Previous</button><span>Page {{ profilePage }} of {{ profilePageCount }}</span><button type="button" (click)="loadProfiles(profilePage + 1)" [disabled]="profilePage >= profilePageCount">Next</button></nav> }
+          }
+        </section>
+      } @else {
+        <section class="results-section interests-section"><div class="results-heading"><div><p class="section-kicker">CONNECTIONS, AT YOUR PACE</p><h2>Your interests</h2></div><button type="button" class="text-button" (click)="loadInterests()">Refresh <span>↻</span></button></div>
+          @if (interestsList.length === 0) { <div class="empty-state"><span class="empty-flower">✳</span><h3>Your story is still unfolding</h3><p>When someone reaches out, you’ll find their introduction here.</p></div> }
+          @else { <div class="interest-list">@for (item of interestsList; track item.id) { <article class="interest-row"><div class="interest-avatar">{{ item.first_name.charAt(0) }}{{ item.last_name.charAt(0) }}</div><div class="interest-person"><h3>{{ item.first_name }} {{ item.last_name }}</h3><p>{{ item.profession || 'Profession not shared' }} <span class="middot">·</span> {{ item.native_district }}</p><span class="interest-direction">{{ item.direction === 'incoming' ? 'EXPRESSED INTEREST IN YOU' : 'YOU EXPRESSED INTEREST' }}</span></div><div class="interest-actions"><span class="interest-status" [class.accepted]="item.status === 'Accepted'">{{ item.status }}</span>@if (item.direction === 'incoming' && item.status === 'Requested') { <button type="button" class="accept-button" (click)="respond(item.id, 'Accepted')">Accept</button><button type="button" class="decline-button" (click)="respond(item.id, 'Declined')">Decline</button> }</div></article> } </div> }
+        </section>
+      }
+    </main>
+  }
+  <footer class="site-footer"><span>maitri<span class="brand-period">.</span></span><span>Built around the things that bring us together.</span><span>Wherever you are</span></footer>
+</div>
